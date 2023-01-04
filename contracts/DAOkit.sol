@@ -151,7 +151,7 @@ pure
 
 returns(bool _unique)
 {
-bool[] memory visited; 
+bool[] memory visited=new bool[](_number); 
 uint i;
 _unique=true;
 while (i<_response.length){
