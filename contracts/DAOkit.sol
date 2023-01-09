@@ -163,7 +163,7 @@ contract DAOkit {
             if (_response[i]>=_number){
             return false;
             } 
-
+    i++;
         }
     return _right;
     }
@@ -183,6 +183,7 @@ contract DAOkit {
             else{
                 visited[_response[i]]=true;
             } 
+             i++;
         }
         return _unique;
     }
