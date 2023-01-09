@@ -163,7 +163,7 @@ contract DAOkit {
             if (_response[i]>=_number){
             return false;
             } 
-    i++;
+    unchecked{i++;}
         }
     return _right;
     }
@@ -183,7 +183,7 @@ contract DAOkit {
             else{
                 visited[_response[i]]=true;
             } 
-             i++;
+            unchecked{i++;}
         }
         return _unique;
     }
@@ -224,6 +224,7 @@ contract DAOkit {
         // Set the response
         for(uint i = 0; i < _response.length; ) {
             responses[_proposer][_id][_number-1].response.push(_response[i]);
+            unchecked{i++;}
         }
         // Create a ResponseRef struct for payment
         ResponseRef memory r;
@@ -251,6 +252,7 @@ contract DAOkit {
         responseRefs[msg.sender][i].proposer=address(0);        
         _balance+=fees[uint8(HIPs[_proposer][_id].HIPType)]/HIPs[_proposer][_id].numResponses;
             }
+            unchecked{i++;}
         }
       (bool sent, ) = msg.sender.call{value: _balance}("");
       require(sent, "Failed to send Ether");
@@ -303,8 +305,6 @@ contract DAOkit {
         if (_proposer!=address(0) && block.timestamp>HIPs[_proposer][_id].creationDate+HIPs[_proposer][_id].duration){    
             _balance+=fees[uint8(HIPs[_proposer][_id].HIPType)]/HIPs[_proposer][_id].numResponses;
             }
+            unchecked{i++;}
         }
         return _balance;
-   }
-
-}
