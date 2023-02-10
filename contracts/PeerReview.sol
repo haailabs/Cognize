@@ -4,12 +4,12 @@ pragma solidity ^0.8.12;
 * @title Peer Review contract
 * @author Nassim Dehouche
 */
-import "@openzeppelin/contracts/interfaces/IERC721.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 contract PeerReview {
     // Address of the contract owner
     address owner;
-    // Address of the ERC-721 contract used to vet respondents
-    address tokenContract ;
+    // Address of the ERC-1155 contract used to vet respondents
+    address tokenContract;
     // Number of proposers
     uint numProposers;  
     // Array of proposer addresses
@@ -51,6 +51,9 @@ contract PeerReview {
         bytes32 pdfHash;
         // Hash of request
         bytes32 requestHash;
+        // Medical specialties
+        // Binary representation of one or several IDs from 0 to 22
+        uint32 specialties;
     }
 
     // Mapping proposers with an array of their proposed HIPs
@@ -88,10 +91,15 @@ contract PeerReview {
         require(msg.value==fee, "User did not pay the right fee.");
         _;
     }
+    
+    // Helper function that returns the i-th bit of the binary representation n
+    function getBit(uint32 n, uint8 i) public pure returns (bool){
+    return (n& (1<<i)) !=0; 
+    }
 
     // Modifier to check if the user holds the required NFT
-    modifier onlyIfHoldsNFT(address _voter) {
-        require(IERC721(tokenContract).balanceOf(_voter) > 0, "User does not hold the right NFT.");
+    modifier onlyIfHoldsNFT(address _voter, uint _specialty) {
+        require(IERC1155Upgradeable(tokenContract).balanceOf(_voter, _specialty) > 0, "User does not hold the right NFT.");
         _;
     } 
 
@@ -106,6 +114,8 @@ contract PeerReview {
         require(block.timestamp<=HIPs[_proposer][_id].creationDate+HIPs[_proposer][_id].duration, "This HIP is no longer open for responses.");
         _;
     } 
+
+    
     
     /**
     * @dev Submits a HIP
@@ -141,9 +151,9 @@ contract PeerReview {
     * @param _id is the index of the HIP among the proposer's
     * @param _response is the submitted reponse array
     */
-    function submitResponse(address _proposer, uint _id, uint _response, bytes32 _responseHash) 
+    function submitResponse(address _proposer, uint _specialty, uint _id, uint _response, bytes32 _responseHash) 
     public 
-    onlyIfHoldsNFT(msg.sender)
+    onlyIfHoldsNFT(msg.sender, _specialty)
     onlyIfHasNotResponded(_proposer, _id)
     onlyIfStillOpen(_proposer, _id)
     returns(uint _number)
