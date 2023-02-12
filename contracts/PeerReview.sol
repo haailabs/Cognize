@@ -98,8 +98,10 @@ contract PeerReview {
     }
 
     // Modifier to check if the user holds the required NFT
-    modifier onlyIfHoldsNFT(address _voter, uint _specialty) {
-        require(IERC1155Upgradeable(tokenContract).balanceOf(_voter, _specialty) > 0, "User does not hold the right NFT.");
+    modifier onlyIfHoldsNFT(address _proposer, uint _id, uint8 _specialty) {
+        require(IERC1155Upgradeable(tokenContract).balanceOf(msg.sender, _specialty) > 0 
+        && getBit(HIPs[_proposer][_id].specialties, _specialty)==true
+        , "User does not hold the right NFT.");
         _;
     } 
 
@@ -123,7 +125,7 @@ contract PeerReview {
     * @return _id is the index of the HIP in the proposer's HIP array
     */
   
-    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash) 
+    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash, uint32 _specialties) 
     public 
     payable
     onlyIfPaidEnough()
@@ -142,6 +144,7 @@ contract PeerReview {
         HIPs[msg.sender][_id].duration = _duration;
         HIPs[msg.sender][_id].pdfHash = _pdfHash;
         HIPs[msg.sender][_id].requestHash = _requestHash;
+        HIPs[msg.sender][_id].specialties = _specialties;
         return _id;
     }
 
@@ -151,15 +154,15 @@ contract PeerReview {
     * @param _id is the index of the HIP among the proposer's
     * @param _response is the submitted reponse array
     */
-    function submitResponse(address _proposer, uint _specialty, uint _id, uint _response, bytes32 _responseHash) 
+    function submitResponse(address _proposer, uint8 _specialty, uint _id, Response memory _response) 
     public 
-    onlyIfHoldsNFT(msg.sender, _specialty)
+    onlyIfHoldsNFT(_proposer, _id, _specialty)
     onlyIfHasNotResponded(_proposer, _id)
     onlyIfStillOpen(_proposer, _id)
     returns(uint _number)
     {
         // Check if the response is valid
-        if(_response>3) { revert('Invalid response'); }
+        if(_response.response>3) { revert('Invalid response'); }
         // Set the index of the response in the proposer's response array
         _number=responses[_proposer][_id].length+1;
         // Increment the number of responses for the HIP
@@ -169,8 +172,8 @@ contract PeerReview {
         // Set the respondent's address
         responses[_proposer][_id][_number-1].respondent=msg.sender;
         // Set the response
-        responses[_proposer][_id][_number-1].response=_response;
-        responses[_proposer][_id][_number-1].responseHash=_responseHash; 
+        responses[_proposer][_id][_number-1].response=_response.response;
+        responses[_proposer][_id][_number-1].responseHash=_response.responseHash; 
         // Create a ResponseRef struct for payment
         ResponseRef memory r;
         r.proposer = _proposer;
