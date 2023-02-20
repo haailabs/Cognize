@@ -11,7 +11,9 @@ contract PeerReview {
     // Address of the ERC-1155 contract used to vet respondents
     address tokenContract;
     // Number of proposers
-    uint numProposers;  
+    uint numProposers;
+     // Number of HIPS
+    uint numHIPs;    
     // Array of proposer addresses
     address[] proposers;
     // Fee for submission of a manuscript
@@ -150,6 +152,7 @@ contract PeerReview {
         HIPs[msg.sender][_id].requestHash = _requestHash;
         HIPs[msg.sender][_id].specialties = _specialties;
         HIPIndex[_index]=HIPs[msg.sender][_id];
+        numHIPs++;
         return _id;
     }
 
@@ -219,6 +222,13 @@ contract PeerReview {
     }
 
     /**
+    * @dev Returns the total number of HIPs
+    */
+    function getNumHIPs() public view returns(uint _numProposers){
+        return numHIPs;
+    }
+
+    /**
     * @dev Returns the i-th proposer for indexing
     */
     function getProposer(uint i) public view returns(address _proposer){
@@ -226,7 +236,7 @@ contract PeerReview {
     }  
 
     /**
-    * @dev Returns the total number of HIPs for indexing
+    * @dev Returns the total number of HIPs of proposer for indexing
     */
     function getHIPCount(address _proposer) public view returns(uint _count){
      return HIPs[_proposer].length;
