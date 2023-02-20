@@ -59,6 +59,9 @@ contract PeerReview {
     // Mapping proposers with an array of their proposed HIPs
     mapping(address => HIP[]) public HIPs; 
 
+    // Mapping unique indices with corresponding HIPs
+    mapping(uint => HIP) public HIPIndex; 
+
     // The Response struct for the content of the response.
     struct Response{ 
         // Address of the respondent
@@ -122,10 +125,11 @@ contract PeerReview {
     /**
     * @dev Submits a HIP
     * @param _duration is the duration of the HIP
+    * @param _index is the unique index of the HIP among all HIPs
     * @return _id is the index of the HIP in the proposer's HIP array
     */
   
-    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash, uint32 _specialties) 
+    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash, uint32 _specialties, uint _index) 
     public 
     payable
     onlyIfPaidEnough()
@@ -145,6 +149,7 @@ contract PeerReview {
         HIPs[msg.sender][_id].pdfHash = _pdfHash;
         HIPs[msg.sender][_id].requestHash = _requestHash;
         HIPs[msg.sender][_id].specialties = _specialties;
+        HIPIndex[_index]=HIPs[msg.sender][_id];
         return _id;
     }
 
