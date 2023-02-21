@@ -224,7 +224,7 @@ contract PeerReview {
     /**
     * @dev Returns the total number of HIPs
     */
-    function getNumHIPs() public view returns(uint _numProposers){
+    function getNumHIPs() public view returns(uint){
         return numHIPs;
     }
 
