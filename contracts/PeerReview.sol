@@ -75,11 +75,13 @@ contract PeerReview {
     }
 
     // The Response reference struct for payment.
-    struct ResponseRef{ 
-        // Address of the proposer
-        address proposer;
-        // Index of the HIP
-        uint index;
+    struct ResponseRef {
+    // Address of the proposer
+    address proposer;
+    // Index of the HIP
+    uint index;
+    // Withdrawal status
+    bool paid;
     }
 
     // Responses. The first key is the proposer address
@@ -196,26 +198,28 @@ returns(uint _number)
 }
 
 
-    /**
-    * @dev Respondents payment request function for a particular HIP
-    */
-    function requestPayment() public 
-    {
-        uint _balance;
-        uint _id;
-        address _proposer;
-        for (uint i=0;i<responseRefs[msg.sender].length;){
-            _proposer=responseRefs[msg.sender][i].proposer;
-            _id=responseRefs[msg.sender][i].index; 
-            if (_proposer!=address(0) && block.timestamp>HIPs[_proposer][_id].creationDate+HIPs[_proposer][_id].duration){
-        responseRefs[msg.sender][i].proposer=address(0);        
-        _balance+=fee/HIPs[_proposer][_id].numResponses;
-            }
-            unchecked{i++;}
-        }
-      (bool sent, ) = msg.sender.call{value: _balance}("");
-      require(sent, "Failed to send Ether");
-   }
+  /**
+ * @dev Withdraws payment for a particular response using the response index
+ * @param _responseIndex is the index of the response in the respondent's responseRefs array
+ */
+function withdrawPayment(uint _responseIndex) public {
+    require(_responseIndex < responseRefs[msg.sender].length, "Invalid response index");
+
+    ResponseRef storage ref = responseRefs[msg.sender][_responseIndex];
+    require(ref.paid == false, "Payment already withdrawn");
+
+    address _proposer = ref.proposer;
+    uint _id = ref.index;
+
+    require(block.timestamp > HIPs[_proposer][_id].creationDate + HIPs[_proposer][_id].duration, "HIP still open for responses");
+
+    uint _payment = fee / HIPs[_proposer][_id].numResponses;
+    ref.paid = true;
+
+    (bool sent, ) = msg.sender.call{value: _payment}("");
+    require(sent, "Failed to send Ether");
+}
+
 
     /**
     * @dev Returns the total number of proposers
