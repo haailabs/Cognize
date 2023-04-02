@@ -156,42 +156,45 @@ contract PeerReview {
         return _id;
     }
 
-    /**
-    * @dev Submits a response to a HIP
-    * @param _proposer is the address of the proposer of the HIP
-    * @param _id is the index of the HIP among the proposer's
-    * @param _response is the submitted reponse array
-    */
-    function submitResponse(address _proposer, uint8 _specialty, uint _id, Response memory _response) 
-    public 
-    onlyIfHoldsNFT(_proposer, _id, _specialty)
-    onlyIfHasNotResponded(_proposer, _id)
-    onlyIfStillOpen(_proposer, _id)
-    returns(uint _number)
-    {
-        // Check if the response is valid
-        if(_response.response>3) { revert('Invalid response'); }
-        // Set the index of the response in the proposer's response array
-        _number=responses[_proposer][_id].length+1;
-        // Increment the number of responses for the HIP
-        HIPs[_proposer][_id].numResponses=_number;
-        // Add the response to the proposer's response array
-        responses[_proposer][_id].push();
-        // Set the respondent's address
-        responses[_proposer][_id][_number-1].respondent=msg.sender;
-        // Set the response
-        responses[_proposer][_id][_number-1].response=_response.response;
-        responses[_proposer][_id][_number-1].responseHash=_response.responseHash; 
-        // Create a ResponseRef struct for payment
-        ResponseRef memory r;
-        r.proposer = _proposer;
-        r.index = _id;
-        // Add the ResponseRef struct to the respondent's responseRefs array
-        responseRefs[msg.sender].push(r);
-        // Set the respondent's responded boolean for this HIP to true
-        responded[msg.sender][_proposer][_id]=true;
-        return _number;
-    }
+  /**
+* @dev Submits a response to a HIP
+* @param _proposer is the address of the proposer of the HIP
+* @param _specialty is the specialty of the respondent
+* @param _id is the index of the HIP among the proposer's
+* @param _responseValue is the submitted response value
+* @param _responseHash is the submitted response hash
+*/
+function submitResponse(address _proposer, uint8 _specialty, uint _id, uint _responseValue, bytes32 _responseHash) 
+public 
+onlyIfHoldsNFT(_proposer, _id, _specialty)
+onlyIfHasNotResponded(_proposer, _id)
+onlyIfStillOpen(_proposer, _id)
+returns(uint _number)
+{
+    // Check if the response is valid
+    if (_responseValue > 3) { revert("Invalid response"); }
+    // Set the index of the response in the proposer's response array
+    _number = responses[_proposer][_id].length + 1;
+    // Increment the number of responses for the HIP
+    HIPs[_proposer][_id].numResponses = _number;
+    // Add the response to the proposer's response array
+    responses[_proposer][_id].push();
+    // Set the respondent's address
+    responses[_proposer][_id][_number - 1].respondent = msg.sender;
+    // Set the response
+    responses[_proposer][_id][_number - 1].response = _responseValue;
+    responses[_proposer][_id][_number - 1].responseHash = _responseHash;
+    // Create a ResponseRef struct for payment
+    ResponseRef memory r;
+    r.proposer = _proposer;
+    r.index = _id;
+    // Add the ResponseRef struct to the respondent's responseRefs array
+    responseRefs[msg.sender].push(r);
+    // Set the respondent's responded boolean for this HIP to true
+    responded[msg.sender][_proposer][_id] = true;
+    return _number;
+}
+
 
     /**
     * @dev Respondents payment request function for a particular HIP
