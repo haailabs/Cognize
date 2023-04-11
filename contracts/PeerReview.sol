@@ -56,6 +56,8 @@ contract PeerReview {
         // Medical specialties
         // Binary representation of one or several IDs from 0 to 22
         uint32 specialties;
+        // Double indexing the proposer
+        address proposer;
     }
 
     // Mapping proposers with an array of their proposed HIPs
@@ -85,10 +87,10 @@ contract PeerReview {
     }
 
     // Responses. The first key is the proposer address
-    mapping(address => mapping(uint => Response[])) internal responses;
+    mapping(uint => Response[]) internal responses;
 
     // The Response boolean. The first key is the respondent address
-    mapping(address => mapping(address => mapping (uint =>bool))) public responded;
+    mapping(address => mapping(uint =>bool)) public responded;
 
     // The Response reference for payment. Mapping respondent with the HIPs they responded to.
     mapping(address => ResponseRef[]) public responseRefs;
@@ -105,22 +107,22 @@ contract PeerReview {
     }
 
     // Modifier to check if the user holds the required NFT
-    modifier onlyIfHoldsNFT(address _proposer, uint _id, uint8 _specialty) {
+    modifier onlyIfHoldsNFT(uint _id, uint8 _specialty) {
         require(IERC1155Upgradeable(tokenContract).balanceOf(msg.sender, _specialty) > 0 
-        && getBit(HIPs[_proposer][_id].specialties, _specialty)==true
+        && getBit(HIPIndex[_id].specialties, _specialty)==true
         , "User does not hold the right NFT.");
         _;
     } 
 
     // Modifier to check if the user has already responded to this HIP
-    modifier onlyIfHasNotResponded(address _proposer, uint _id) {
-        require(responded[msg.sender][_proposer][_id]==false, "User has already responded.");
+    modifier onlyIfHasNotResponded(uint _id) {
+        require(responded[msg.sender][_id]==false, "User has already responded.");
         _;
     } 
 
     // Modifier to check if the HIP is still open for responses
-    modifier onlyIfStillOpen(address _proposer, uint _id) {
-        require(block.timestamp<=HIPs[_proposer][_id].creationDate+HIPs[_proposer][_id].duration, "This HIP is no longer open for responses.");
+    modifier onlyIfStillOpen(uint _id) {
+        require(block.timestamp<=HIPIndex[_id].creationDate+HIPIndex[_id].duration, "This HIP is no longer open for responses.");
         _;
     } 
 
@@ -153,6 +155,7 @@ contract PeerReview {
         HIPs[msg.sender][_id].pdfHash = _pdfHash;
         HIPs[msg.sender][_id].requestHash = _requestHash;
         HIPs[msg.sender][_id].specialties = _specialties;
+        HIPs[msg.sender][_id].proposer = msg.sender;
         HIPIndex[_index]=HIPs[msg.sender][_id];
         numHIPs++;
         return _id;
@@ -160,40 +163,39 @@ contract PeerReview {
 
   /**
 * @dev Submits a response to a HIP
-* @param _proposer is the address of the proposer of the HIP
 * @param _specialty is the specialty of the respondent
-* @param _id is the index of the HIP among the proposer's
+* @param _id is the index of the HIP among all HIPs
 * @param _responseValue is the submitted response value
 * @param _responseHash is the submitted response hash
 */
-function submitResponse(address _proposer, uint8 _specialty, uint _id, uint _responseValue, bytes32 _responseHash) 
+function submitResponse(uint8 _specialty, uint _id, uint _responseValue, bytes32 _responseHash) 
 public 
-onlyIfHoldsNFT(_proposer, _id, _specialty)
-onlyIfHasNotResponded(_proposer, _id)
-onlyIfStillOpen(_proposer, _id)
+onlyIfHoldsNFT(_id, _specialty)
+onlyIfHasNotResponded(_id)
+onlyIfStillOpen(_id)
 returns(uint _number)
 {
     // Check if the response is valid
     if (_responseValue > 3) { revert("Invalid response"); }
     // Set the index of the response in the proposer's response array
-    _number = responses[_proposer][_id].length + 1;
+    _number = responses[_id].length + 1;
     // Increment the number of responses for the HIP
-    HIPs[_proposer][_id].numResponses = _number;
+    HIPIndex[_id].numResponses = _number;
     // Add the response to the proposer's response array
-    responses[_proposer][_id].push();
+    responses[_id].push();
     // Set the respondent's address
-    responses[_proposer][_id][_number - 1].respondent = msg.sender;
+    responses[_id][_number - 1].respondent = msg.sender;
     // Set the response
-    responses[_proposer][_id][_number - 1].response = _responseValue;
-    responses[_proposer][_id][_number - 1].responseHash = _responseHash;
+    responses[_id][_number - 1].response = _responseValue;
+    responses[_id][_number - 1].responseHash = _responseHash;
     // Create a ResponseRef struct for payment
     ResponseRef memory r;
-    r.proposer = _proposer;
+    r.proposer = HIPIndex[_id].proposer;
     r.index = _id;
     // Add the ResponseRef struct to the respondent's responseRefs array
     responseRefs[msg.sender].push(r);
     // Set the respondent's responded boolean for this HIP to true
-    responded[msg.sender][_proposer][_id] = true;
+    responded[msg.sender][_id] = true;
     return _number;
 }
 
@@ -252,8 +254,8 @@ function withdrawPayment(uint _responseIndex) public {
     /**
     * @dev Returns a particular response to a HIP
     */
-    function getResponse(address _proposer, uint _indexHIP, uint _indexResponse) public view returns(uint response, bytes32 responseHash){
-        return (responses[_proposer][_indexHIP][_indexResponse].response, responses[_proposer][_indexHIP][_indexResponse].responseHash);
+    function getResponse(uint _indexHIP, uint _indexResponse) public view returns(uint response, bytes32 responseHash){
+        return (responses[_indexHIP][_indexResponse].response, responses[_indexHIP][_indexResponse].responseHash);
     }
     
     /**
@@ -265,8 +267,8 @@ function withdrawPayment(uint _responseIndex) public {
         for (uint i=0;i<responseRefs[msg.sender].length;){
         _proposer=responseRefs[msg.sender][i].proposer;
         _id=responseRefs[msg.sender][i].index; 
-        if (_proposer!=address(0) && block.timestamp>HIPs[_proposer][_id].creationDate+HIPs[_proposer][_id].duration){    
-            _balance+=fee/HIPs[_proposer][_id].numResponses;
+        if (_proposer!=address(0) && block.timestamp>HIPIndex[_id].creationDate+HIPIndex[_id].duration){    
+            _balance+=fee/HIPIndex[_id].numResponses;
             }
             unchecked{i++;}
         }
