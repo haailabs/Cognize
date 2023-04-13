@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
-contract AwesomeGame is ERC1155 {
+contract MedCred is ERC1155 {
     uint256 public constant Allergy = 0;
     uint256 public constant Anesthesiology = 1;
     uint256 public constant Colon = 2;
