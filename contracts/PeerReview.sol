@@ -16,7 +16,8 @@ contract PeerReview {
     uint numHIPs;    
     // Array of proposer addresses
     address[] proposers;
-   
+    // Fee for submission of a manuscript
+    uint public fee; 
 
     // Constructor that sets the owner address to the msg.sender
     constructor() {
@@ -26,15 +27,17 @@ contract PeerReview {
     /**
     * @dev Initializes the contract with the ERC-721 contract address and fees
     * @param _tokenContract is the address of the ERC-721 contract to vet respondents
+    * @param _fee is the submission fee
     * We assume one address, one NFT, one response. 
     */
-    function initialize (address _tokenContract )
+    function initialize (address _tokenContract, uint _fee )
     public {
         // Only the owner can initialize the contract
         require(msg.sender == owner);
         // Set the ERC-721 contract address
         tokenContract = _tokenContract;
-
+        // Set the fees
+        fee = _fee;
     }
 
 
@@ -53,11 +56,8 @@ contract PeerReview {
         // Medical specialties
         // Binary representation of one or several IDs from 0 to 22
         uint32 specialties;
-         // Bounty
-        uint fee; 
         // Double indexing the proposer
         address proposer;
-
     }
 
     // Mapping proposers with an array of their proposed HIPs
@@ -96,8 +96,8 @@ contract PeerReview {
     mapping(address => ResponseRef[]) public responseRefs;
 
     // Modifier to check if the user has paid the right fee for the HIP type
-    modifier onlyIfPaidEnough(uint _fee) {
-        require(msg.value==_fee, "User did not pay the right fee.");
+    modifier onlyIfPaidEnough() {
+        require(msg.value==fee, "User did not pay the right fee.");
         _;
     }
     
@@ -135,10 +135,10 @@ contract PeerReview {
     * @return _id is the index of the HIP in the proposer's HIP array
     */
   
-    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash, uint32 _specialties, uint _fee, uint _index) 
+    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash, uint32 _specialties, uint _index) 
     public 
     payable
-    onlyIfPaidEnough(_fee)
+    onlyIfPaidEnough()
     returns(uint _id){
         // Set the index of the HIP in the proposer's HIP array
         _id= HIPs[msg.sender].length;
@@ -156,7 +156,6 @@ contract PeerReview {
         HIPs[msg.sender][_id].requestHash = _requestHash;
         HIPs[msg.sender][_id].specialties = _specialties;
         HIPs[msg.sender][_id].proposer = msg.sender;
-        HIPs[msg.sender][_id].fee = _fee;
         HIPIndex[_index]=HIPs[msg.sender][_id];
         numHIPs++;
         return _id;
@@ -216,7 +215,7 @@ function withdrawPayment(uint _responseIndex) public {
 
     require(block.timestamp > HIPs[_proposer][_id].creationDate + HIPs[_proposer][_id].duration, "HIP still open for responses");
 
-    uint _payment = HIPs[_proposer][_id].fee / HIPs[_proposer][_id].numResponses;
+    uint _payment = fee / HIPs[_proposer][_id].numResponses;
     ref.paid = true;
 
     (bool sent, ) = msg.sender.call{value: _payment}("");
@@ -269,11 +268,10 @@ function withdrawPayment(uint _responseIndex) public {
         _proposer=responseRefs[msg.sender][i].proposer;
         _id=responseRefs[msg.sender][i].index; 
         if (_proposer!=address(0) && block.timestamp>HIPIndex[_id].creationDate+HIPIndex[_id].duration){    
-            _balance+=HIPIndex[_id].fee/HIPIndex[_id].numResponses;
+            _balance+=fee/HIPIndex[_id].numResponses;
             }
             unchecked{i++;}
         }
         return _balance;
     }
     }
-    
