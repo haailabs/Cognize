@@ -290,21 +290,5 @@ function withdrawPayment(uint _responseIndex) public {
         return (responses[_indexHIP][_indexResponse].response, responses[_indexHIP][_indexResponse].responseHash);
     }
     
-    /**
-    * @dev Returns the balance of msg.sender
-    */
-    function getBalance() public view returns(uint _balance){
-        uint _id;
-        address _proposer;
-        for (uint i=0;i<responseRefs[msg.sender].length;){
-        _proposer=responseRefs[msg.sender][i].proposer;
-        _id=responseRefs[msg.sender][i].index; 
-        if (_proposer!=address(0) && block.timestamp>HIPIndex[_id].creationDate+HIPIndex[_id].duration){    
-            _balance+=HIPIndex[_id].fee/HIPIndex[_id].numResponses;
-            }
-            unchecked{i++;}
-        }
-        return _balance;
-    }
     }
     
