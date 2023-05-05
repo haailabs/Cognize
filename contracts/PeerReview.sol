@@ -16,8 +16,7 @@ contract PeerReview {
     uint numHIPs;    
     // Array of proposer addresses
     address[] proposers;
-    // Fee for submission of a manuscript
-    uint public fee; 
+   
 
     // Constructor that sets the owner address to the msg.sender
     constructor() {
@@ -27,17 +26,15 @@ contract PeerReview {
     /**
     * @dev Initializes the contract with the ERC-721 contract address and fees
     * @param _tokenContract is the address of the ERC-721 contract to vet respondents
-    * @param _fee is the submission fee
     * We assume one address, one NFT, one response. 
     */
-    function initialize (address _tokenContract, uint _fee )
+    function initialize (address _tokenContract )
     public {
         // Only the owner can initialize the contract
         require(msg.sender == owner);
         // Set the ERC-721 contract address
         tokenContract = _tokenContract;
-        // Set the fees
-        fee = _fee;
+
     }
 
 
@@ -56,8 +53,11 @@ contract PeerReview {
         // Medical specialties
         // Binary representation of one or several IDs from 0 to 22
         uint32 specialties;
+         // Bounty
+        uint fee; 
         // Double indexing the proposer
         address proposer;
+
     }
 
     // Mapping proposers with an array of their proposed HIPs
@@ -96,8 +96,8 @@ contract PeerReview {
     mapping(address => ResponseRef[]) public responseRefs;
 
     // Modifier to check if the user has paid the right fee for the HIP type
-    modifier onlyIfPaidEnough() {
-        require(msg.value==fee, "User did not pay the right fee.");
+    modifier onlyIfPaidEnough(uint _fee) {
+        require(msg.value==_fee, "User did not pay the right fee.");
         _;
     }
     
@@ -126,6 +126,37 @@ contract PeerReview {
         _;
     } 
 
+    // Modifier to check if the HIP is closed for responses
+    modifier onlyIfClosed(uint _id) {
+    require(block.timestamp > HIPIndex[_id].creationDate + HIPIndex[_id].duration, "This HIP is still open for responses.");
+    _;
+    }
+
+    // Modifier to check if the HIP has no responses
+    modifier onlyIfNoResponses(uint _id) {
+    require(HIPIndex[_id].numResponses == 0, "This HIP has already received responses.");
+    _;
+    }
+
+    /**
+    * @dev Allows the creator of a HIP to withdraw their fee
+    * @param _id is the index of the HIP in the HIP index
+    */
+    function withdrawFee(uint _id) 
+    public
+    onlyIfClosed(_id)
+    onlyIfNoResponses(_id)
+    {
+    // Check if the caller is the creator of the HIP
+    require(msg.sender == HIPIndex[_id].proposer, "Only the creator of the HIP can withdraw the fee.");
+
+    // Transfer the fee to the creator of the HIP
+    uint fee = HIPIndex[_id].fee;
+    HIPIndex[_id].fee = 0;
+    (bool success, ) = msg.sender.call{value: fee}("");
+    require(success, "Fee withdrawal failed.");
+    }
+
     
     
     /**
@@ -135,10 +166,10 @@ contract PeerReview {
     * @return _id is the index of the HIP in the proposer's HIP array
     */
   
-    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash, uint32 _specialties, uint _index) 
+    function submitHIP(uint _duration, bytes32 _pdfHash, bytes32 _requestHash, uint32 _specialties, uint _fee, uint _index) 
     public 
     payable
-    onlyIfPaidEnough()
+    onlyIfPaidEnough(_fee)
     returns(uint _id){
         // Set the index of the HIP in the proposer's HIP array
         _id= HIPs[msg.sender].length;
@@ -156,6 +187,7 @@ contract PeerReview {
         HIPs[msg.sender][_id].requestHash = _requestHash;
         HIPs[msg.sender][_id].specialties = _specialties;
         HIPs[msg.sender][_id].proposer = msg.sender;
+        HIPs[msg.sender][_id].fee = _fee;
         HIPIndex[_index]=HIPs[msg.sender][_id];
         numHIPs++;
         return _id;
@@ -215,7 +247,7 @@ function withdrawPayment(uint _responseIndex) public {
 
     require(block.timestamp > HIPs[_proposer][_id].creationDate + HIPs[_proposer][_id].duration, "HIP still open for responses");
 
-    uint _payment = fee / HIPs[_proposer][_id].numResponses;
+    uint _payment = HIPs[_proposer][_id].fee / HIPs[_proposer][_id].numResponses;
     ref.paid = true;
 
     (bool sent, ) = msg.sender.call{value: _payment}("");
@@ -268,10 +300,11 @@ function withdrawPayment(uint _responseIndex) public {
         _proposer=responseRefs[msg.sender][i].proposer;
         _id=responseRefs[msg.sender][i].index; 
         if (_proposer!=address(0) && block.timestamp>HIPIndex[_id].creationDate+HIPIndex[_id].duration){    
-            _balance+=fee/HIPIndex[_id].numResponses;
+            _balance+=HIPIndex[_id].fee/HIPIndex[_id].numResponses;
             }
             unchecked{i++;}
         }
         return _balance;
     }
     }
+    
