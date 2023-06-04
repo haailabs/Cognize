@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: CC-BY-NC-SA-4.0
 pragma solidity ^0.8.12;
 /**
-* @title Peer Review contract
+* @title SciDex Peer Review contract
 * @author Nassim Dehouche
 */
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
-contract PeerReview {
+contract SciDex {
     // Address of the contract owner
     address owner;
     // Address of the ERC-1155 contract used to qualify reviewers
