@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: CC BY 4.0
+//SPDX-License-Identifier: CC-BY-NC-SA-4.0
 pragma solidity ^0.8.12;
 /**
 * @title Peer Review contract
@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.so
 contract PeerReview {
     // Address of the contract owner
     address owner;
-    // Address of the ERC-1155 contract used to vet respondents
+    // Address of the ERC-1155 contract used to qualify reviewers
     address tokenContract;
     // Number of proposers
     uint numProposers;
@@ -24,9 +24,9 @@ contract PeerReview {
     }
 
     /**
-    * @dev Initializes the contract with the ERC-721 contract address and fees
-    * @param _tokenContract is the address of the ERC-721 contract to vet respondents
-    * We assume one address, one NFT, one response. 
+    * @dev Initializes the contract 
+    * @param _tokenContract is the address of the ERC-1155 contract to qualify reviewers
+    * One review per manuscript per reviewer 
     */
     function initialize (address _tokenContract )
     public {
@@ -38,7 +38,7 @@ contract PeerReview {
     }
 
 
-    // The HIP structure
+    // The Human Intelligence Primitive structure, i.e. a request for review
     struct HIP { 
         // Creation date
         uint creationDate;
@@ -50,10 +50,11 @@ contract PeerReview {
         bytes32 pdfHash;
         // Hash of request
         bytes32 requestHash;
-        // Medical specialties
+        // Manuscript Specialties
         // Binary representation of one or several IDs from 0 to 22
+        //Change this number if you have more or fewer specialties
         uint32 specialties;
-         // Bounty
+         // Bounty paid by proposer
         uint fee; 
         // Double indexing the proposer
         address proposer;
