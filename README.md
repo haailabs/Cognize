@@ -1,4 +1,5 @@
-![Cognize Logo](https://cognize.ndehouche.repl.co/logo.png)
+<img src="https://cognize.ndehouche.repl.co/logo.png" alt="Cognize" style="width:100px;"/>
+
 # Cognize: Full-Stack Expert Elicitation DApp
 
 **Video Walkthrough:** _[[Watch](https://www.youtube.com/watch?v=MkgwUqmRVUQ)]_
