@@ -2,10 +2,11 @@
 
 # Cognize: Full-Stack Expert Elicitation DApp
 
-**Video Walkthrough:** _[[Watch](https://www.youtube.com/watch?v=MkgwUqmRVUQ)]_
-**Implementation:** _[[Visit]([https://cognize.repl.co](https://cognize.ndehouche.repl.co/))]_
-## 1. Overview
+**Video Walkthrough:** _[Watch](https://www.youtube.com/watch?v=MkgwUqmRVUQ)_
+**Implementation:** _[Visit](https://cognize.ndehouche.repl.co/)_
 Note: Make sure to clone the Repl and run the server, as describe in 5. Running the Repository, as Replit does not provide a persistent server.
+
+## 1. Overview
 Cognize is a decentralized solution that enables domain-expert DAOs to monetize their expertise and knowledge by responding to cognitive tasks. Through its integration with Ocean Protocol, Cognize facilitates experts, such as software, legal or medical professionals, to monetize their knowledge.
 
 This repository houses a comprehensive solution incorporating backend, frontend, and smart contracts essential for Cognize's operation. The user interface is designed using Vanilla JavaScript, with minimal dependencies, ensuring it can be integrated across various development environments.
