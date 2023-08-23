@@ -1,5 +1,0 @@
-Each script connects to the Ethereum network using the Web3 library, loads the contract using its address and ABI, and unlocks the user's account.
-You will need to replace your-account-password with the actual password for the account, and you may also need to adjust the other parameters (such as the contract address and the HIP parameters) to match your specific contract and use case.
-* `retrieveResponses.py` uses the Pandas library to create a data frame from the responses, and then prints the data frame to the console. 
-* `submitHIP.py` sets the parameters of the HIP and the index for the fee, retrieves the fee using the `getFee` function, and then calls the `submitHIP` function using the transact method, passing the fee as the value. Finally, it waits for the transaction to be mined and prints the transaction receipt.
-* `submitResponse.py` sets the address of the proposer, the index of the HIP, and the response, and then calls the `submitResponse` function using the transact method. Finally, it waits for the transaction to be mined and prints the transaction receipt.
