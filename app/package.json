@@ -1,0 +1,22 @@
+{
+  "name": "cognize",
+  "version": "1.0.0",
+  "description": "Human-augmented Artificial Intelligence",
+  "main": "client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "HaAI Labs",
+  "license": "ISC",
+  "dependencies": {
+    "@koa/cors": "^4.0.0",
+    "@koa/multer": "^3.0.2",
+    "@koa/router": "^12.0.0",
+    "koa": "^2.14.2",
+    "koa-bodyparser": "^4.4.1",
+    "koa-static": "^5.0.0",
+    "mongodb": "^5.7.0"
+  }
+}

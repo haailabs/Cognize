@@ -1,1 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="logo.png">
+
+  <title>Cognize</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Encode+Sans:400,500,600,700'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.5.9/css/uikit.min.css" />
+  <link rel="stylesheet" href="./style.css">
+  <!-- JS FILES -->
+  <script type="text/javascript" src="https://unpkg.com/web3@1.2.11/dist/web3.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
+  <script type="text/javascript"
+    src="https://unpkg.com/@walletconnect/web3-provider@1.2.1/dist/umd/index.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/fortmatic@2.0.6/dist/fortmatic.js">
+  </script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/BrowserFS/2.0.0/browserfs.min.js">
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/uikit@latest/dist/js/uikit.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/uikit@latest/dist/js/uikit-icons.min.js"></script>
+
+
+
+  <!-- 
+</head>
+
+<body>
+  <!-- Header -->
+  <header id="site-head" class="uk-padding-small">
+    <div class="uk-container uk-container-expand">
+      <div class="uk-grid uk-grid-medium uk-flex uk-flex-middle" data-uk-grid>
+        <div class="uk-flex uk-flex-middle">
+          <img src="logo.png" height="25px" width="25px" alt="Cognize" class="uk-logo">
+          <h3 id="logo"> &nbspCognize</h3>
+        </div>
+        <div class="uk-width-expand">
+          <form id="search-form" action="">
+            <div class="uk-inline uk-width-1-1">
+              <span class="uk-form-icon uk-form-icon-flip" data-uk-icon="icon: search"></span>
+              <input class="uk-input uk-width-1-1 search-fld" type="text" placeholder="Search" autofocus>
+              <a hidden href="#" class="search-filter" data-uk-filter-control="[data-tags*='']"> efSearch</a>
+              <a hidden href="#" class="search-filter-all" data-uk-filter-control>Search all</a>
+              <a hidden href="#" class="search-filter-none" data-uk-filter-control="[data-empty='']">Filter none</a>
+            </div>
+          </form>
+        </div>
+        <div class="uk-width-auto">
+
+
+
+          <button class="no-highlight btn uk-button uk-width-1- " id="btn-connect">Log
+            In</button>
+
+          <div id="connected">
+            <div class="custom-subnav">
+              <div>
+                <a class="no-highlight" href="#" data-uk-icon="icon:bell"></a>
+                <div class="drop-nav drop-comments uk-dropdown"
+                  data-uk-dropdown="mode: click; offset: 20;animation: uk-animation-slide-bottom-small; duration: 150">
+                  <!-- Dropdown content goes here -->
+                </div>
+              </div>
+              <div>
+                <a class="no-highlight" href="#" data-uk-icon="icon:user"></a>
+                <div class="drop-nav uk-dropdown"
+                  data-uk-dropdown="mode: click; offset: 20;animation: uk-animation-slide-bottom-small; duration: 150">
+                  <h4 id="user" class="uk-margin-small-bottom uk-margin-remove-adjacent">0x3285...f3d4</h4>
+                  <p class="uk-text-small uk-text-muted">Your Profile</p>
+                  <p class="uk-text-small uk-text-muted">Your Tasks</p>
+                  <p class="uk-text-small uk-text-muted">Your Responses</p>
+                  <hr>
+                  <button href="#" class="no-highlight btn uk-button uk-width-1- uk-width-1">Log out</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- partial:index.partial.html -->
+  <div class="container" id="app">
+
+    <div class="col">
+
+      <div class="box ">
+
+
+
+
+        <h3>How it works </h3>
+
+
+        <div class="how taskInfo">
+          <small>
+            <ul>
+              <li>
+                <strong> Initiate a Task </strong>
+                <br>Simply click the + button in the bottom right corner to create a cognitive task.
+              </li>
+
+              <li>
+                <strong> Engage with Tasks</strong>
+                <br>If you have a qualification NFT, tap the arrow on the task card's right side to respond. If not,
+                mint a sample NFT below.
+              </li>
+            </ul>
+            <button style="margin-left: 30px;" class="no-highlight btn uk-button " id="mintButton">Mint Sample
+              NFT</button>
+          </small>
+        </div>
+
+
+
+
+        <h3>Filters </h3>
+        <div class="element taskInfo">
+
+          <div class="demo-color">
+            <div class="column-wrapper">
+              <div id="sideboard" class="preview">
+
+
+                <label class="switch primary1">
+                  <input id="toggleChoice" type="checkbox" checked>
+                  <span>Choice&nbsp</span>
+                </label>
+
+
+                <label class="switch primary2">
+                  <input id="toggleRanking" type="checkbox" checked>
+                  <span>Ranking</span>
+                </label>
+              </div>
+            </div>
+
+
+          </div>
+          <div class="demo-color">
+            <div class="column-wrapper">
+              <div class="preview">
+                <label class="switch primary3">
+                  <input id="toggleSorting" type="checkbox" checked>
+                  <span>Sorting</span>
+                </label>
+
+                <label class="switch primary4">
+                  <input id="toggleLabelling" type="checkbox" checked>
+                  <span>Labelling</span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="col second-col">
+
+      <div class="box">
+        <h3>Latest tasks</h3>
+
+        <div class="element taskInfo">
+          <div class="loader">
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+          </div>
+          <ul id="board" class="iconList">
+
+
+          </ul>
+
+        </div>
+
+        <button id="btn-add"
+          class=" no-highlight   btn-circle uk-position-fixed uk-position-bottom-right uk-position-medium  ">
+          <div></div>
+          <div></div>
+          <div>+</div>
+
+        </button>
+      </div>
+
+
+    </div>
+
+  </div>
+
+  <div class="container" id="submit">
+
+
+
+    <div class="col second-col ">
+
+      <div class="box ">
+
+        <h3>Submit a Task <a class="no-highlight return"><small style="color:var(--dark); "><span><i
+                  data-eva="chevron-left-outline"></i>
+              </span>Return</small> </a></h3>
+
+
+        <div id="newTask" class="uk-container element">
+          <!-- Task Submission Form -->
+          <form class="uk-form-stacked">
+            <!-- ... (previous fields) ... -->
+            <!-- Bounty and Duration -->
+            <div class="uk-margin">
+              <!--   <label class="uk-form-label" for="comments">Bounty (MATIC):</label>
+              <input class="uk-input" type="number" step="0.1" id="bounty" name="bounty" value="" />-->
+              <label class="uk-form-label" for="duration">Duration (days):</label>
+              <input class="uk-input" type="number" id="duration" name="duration" value="1" step="1">
+
+            </div>
+            <!-- Number of Options -->
+            <div class="uk-margin">
+              <small><label class="uk-form-label" for="type">Type:</label></small>
+              <select class="uk-select" id="type">
+                <option>Choice</option>
+                <option>Ranking</option>
+                <option>Sorting</option>
+                <option>Labelling</option>
+              </select>
+            </div>
+
+            <div class="uk-margin">
+              <small><label class="uk-form-label" for="title">Title:</label></small>
+              <input class="uk-input" type="text" id="title" placeholder="Enter title">
+            </div>
+
+            <div class="uk-margin">
+              <small><label class="uk-form-label" for="description">Description:</label></small>
+              <textarea class="uk-textarea" id="description" placeholder="Enter description"></textarea>
+            </div>
+
+            <div class="uk-margin">
+              <small><label class="uk-form-label" for="attachment">Attachment:</label></small>
+              <input class="uk-input" type="file" name="file" id="attachment">
+            </div>
+
+            <div class="uk-margin">
+              <small><label class="uk-form-label" for="num-options">Number of Options:</label></small>
+              <input class="uk-input" type="number" id="num-options" placeholder="Enter number of options" min="2"
+                onchange="generateTabs(this.value)">
+
+              <!-- Options Tabs -->
+              <ul id="option-tabs" class="uk-tab" uk-tab></ul>
+
+              <!-- Options Content -->
+              <ul id="option-tab-content" class="uk-switcher uk-margin"></ul>
+
+            </div>
+
+            <div class="uk-margin" id="class-count-container" style="display:none;">
+              <small><label class="uk-form-label" for="num-classes">Number of Classes:</label></small>
+              <input class="uk-input" type="number" id="num-classes" placeholder="Enter number of classes" min="2">
+              <!-- Class Tabs -->
+              <ul id="class-tabs" class="uk-tab" uk-tab></ul>
+
+              <!-- Class Tabs Content -->
+              <ul id="class-tab-content" class="uk-switcher uk-margin"></ul>
+            </div>
+
+
+
+
+
+
+            <!-- Submit Button -->
+            <div class="uk-margin">
+              <button id="new-task" class="no-highlight btn uk-button uk-width-1- uk-button-click" type="submit">Submit
+                Task</button>
+            </div>
+          </form>
+        </div>
+
+
+
+
+      </div>
+
+
+    </div>
+
+  </div>
+  <div class="container" id="respond">
+    <div class="col">
+      <div class="box sideBox">
+
+      </div>
+    </div>
+    <div class="col second-col">
+      <div class="box">
+        <br>
+      </div>
+    </div>
+
+    <!-- partial -->
+    <script src='https://unpkg.com/eva-icons'></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/uikit@latest/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@latest/dist/js/uikit-icons.min.js"></script>
+    <script src="	https://unpkg.com/axios@0.24.0/dist/axios.min.js"></script>
+    <script src="./contracts.js"></script>
+    <script src="./script.js"></script>
+    <script src="./client.js"></script>
+
+    </body>
+
+</html>
