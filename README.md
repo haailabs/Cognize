@@ -3,6 +3,7 @@
 # Cognize: Full-Stack Expert Elicitation DApp
 
 **Video Walkthrough:** _[Watch](https://www.youtube.com/watch?v=MkgwUqmRVUQ)_
+
 **Implementation:** _[Visit](https://cognize.ndehouche.repl.co/)_
 Note: Make sure to clone the Repl and run the server, as describe in 5. Running the Repository, as Replit does not provide a persistent server.
 
