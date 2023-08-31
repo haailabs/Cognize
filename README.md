@@ -5,7 +5,7 @@
 **Video Walkthrough:** _[Watch](https://www.youtube.com/watch?v=MkgwUqmRVUQ)_
 
 **Implementation:** _[Visit](https://cognize.ndehouche.repl.co/)_
-Note: Make sure to clone the Repl and run the server, as describe in 5. Running the Repository, as Replit does not provide a persistent server.
+Note: Make sure to clone the Repl and run the server, as described in 5. Running the Repository, as Replit does not provide a persistent server on a free plan.
 
 ## 1. Overview
 Cognize is a decentralized solution that enables domain-expert DAOs to monetize their expertise and knowledge by responding to cognitive tasks. Through its integration with Ocean Protocol, Cognize facilitates experts, such as software, legal or medical professionals, to monetize their knowledge.
