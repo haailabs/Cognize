@@ -1,10 +1,9 @@
 //Web3 Init
 const Web3Modal = window.Web3Modal.default;
 const WalletConnectProvider = window.WalletConnectProvider.default;
-const Fortmatic = window.Fortmatic;
+
 const evmChains = window.evmChains;
-// Web3modal instance
-let web3Modal;
+
 // Chosen wallet provider given by the dialog window
 let provider;
 // Address of the selected account
@@ -70,14 +69,7 @@ async function init() {
       options: {
         infuraId: "8043bb2cf99347b1bfadfb233c5325c0",
       },
-    },
-
-    fortmatic: {
-      package: Fortmatic,
-      options: {
-        key: "pk_test_391E26A3B43A3350",
-      },
-    },
+    }
   };
 
   web3Modal = new Web3Modal({
@@ -323,7 +315,7 @@ async function refresh() {
           );
       }
     } else {
-      timeLeft.innerHTML = " No wallet";
+      timeLeft = " No wallet";
     }
 
     // Icon row inside the text
@@ -464,24 +456,28 @@ async function fetchAccountData() {
 }
 
 async function onConnect() {
-  console.log("Opening a dialog", web3Modal);
-
   try {
-    provider = await web3Modal.connect();
+    // If window.ethereum is available, use it as the provider
+    if (window.ethereum) {
+      provider = window.ethereum;
+      await window.ethereum.enable(); // Request permission to access accounts
+    } else if (web3Modal) {
+      provider = await web3Modal.connect();
+    } else {
+      throw new Error("No Ethereum provider found");
+    }
+
+    const web3 = new Web3(provider);
     chainId = await web3.eth.net.getId();
 
     // Subscribe to chainId change
-    provider.on("chainChanged", (chainId) => {
-      (async () => {
-        await fetchAccountData();
-      })();
+    provider.on("chainChanged", async () => {
+      await fetchAccountData();
     });
 
-    // Subscribe to chainId change
-    provider.on("networkChanged", (chainId) => {
-      (async () => {
-        await fetchAccountData();
-      })();
+    // Subscribe to network change (though chainChanged is recommended by MetaMask over networkChanged)
+    provider.on("networkChanged", async () => {
+      await fetchAccountData();
     });
 
     await refreshAccountData();
@@ -493,6 +489,7 @@ async function onConnect() {
     return e.message; // Return the error message if an exception is caught
   }
 }
+
 
 
 async function refreshAccountData() {
