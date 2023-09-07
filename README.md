@@ -27,7 +27,7 @@ As large language models become increasingly prevalent, the significance of veri
 **Main Files:**
 - `/contracts/Cognize.sol`: Main smart contract for task management.
 - `/contracts/NFT.sol`: The NFT contract for expert qualification.
-- `/app/server.js`: Backend server implementation.
+- `/app/index.js`: Backend server implementation.
 - `/app/client.js`: Handles web3 and backend interactions.
 - `/app/contracts.js`: Contains the address and ABI of the main and token contracts.
 - `/app/script.js`: Implements UI functionalities.
@@ -41,7 +41,7 @@ As large language models become increasingly prevalent, the significance of veri
 git clone [Repository Link]
 cd Cognize/app
 npm install
-node server.js
+node index.js
 ```
 Visit `http://localhost:3000` on your browser.
 
