@@ -1,7 +1,7 @@
 //Web3 Init
 const Web3Modal = window.Web3Modal.default;
 const WalletConnectProvider = window.WalletConnectProvider.default;
-
+var walletModal;
 const evmChains = window.evmChains;
 
 // Chosen wallet provider given by the dialog window
@@ -63,22 +63,24 @@ function convertUnixTime(unixSeconds) {
  */
 async function init() {
   console.log("WalletConnectProvider is", WalletConnectProvider);
+  // Tell Web3modal what providers we have available.
+  // Built-in web browser provider (only one can exist as a time)
+  // like MetaMask, Brave or Opera is added automatically by Web3modal
   const providerOptions = {
     walletconnect: {
       package: WalletConnectProvider,
       options: {
+        // Mikko's test key - don't copy as your mileage may vary
         infuraId: "8043bb2cf99347b1bfadfb233c5325c0",
-      },
+      }
     }
   };
 
-  web3Modal = new Web3Modal({
+  walletModal = new Web3Modal({
     cacheProvider: false, // optional
     providerOptions, // required
     disableInjectedProvider: false, // optional. For MetaMask / Brave / Opera.
   });
-
-  console.log("Web3Modal instance is", web3Modal);
 }
 var web3 = new Web3(window.ethereum);
 var db;
@@ -329,7 +331,7 @@ async function refresh() {
         <div class="icon-text-container">
             <i class="small-icon " data-eva="credit-card-outline"></i>
             <p class="small-text">`+
-      weiToEth(db[i].bounty) + ` Goerli ETH</p>
+      weiToEth(db[i].bounty) + ` ETH</p>
         </div>
         <div class="icon-text-container">
             <i data-eva="message-circle-outline" class="small-icon choice"></i>
@@ -365,12 +367,6 @@ async function refresh() {
 /**
  * Main entry point.
  */
-window.addEventListener("load", async () => {
-  await refresh();
-  await init();
-  document.querySelector("#btn-connect").addEventListener("click", onConnect);
-  await onConnect();
-});
 
 //Contracts instanciation
 const contract = new web3.eth.Contract(CognizeABI, CognizeAddress);
@@ -381,12 +377,38 @@ tokenContract.setProvider(window.ethereum);
 
 //Check whether wallet is connected
 async function checkWalletConnection() {
+  // Check if Ethereum provider exists
+  if (window.ethereum) {
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    const chainId = await window.ethereum.request({ method: "eth_chainId" });
 
-  const accounts = await window.ethereum.request({ method: "eth_accounts" });
-  if (accounts.length > 0) {
-    await refreshAccountData();
+    // Check if connected to Goerli testnet (chainId: "0x5")
+    if (chainId !== "0x5") {
+      // Switch to Goerli testnet
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x5" }],
+        });
+      } catch (error) {
+        if (error.code === 4902) {
+          // Chain not added, you can add it here
+          alert("Please connect to the Goerli testnet manually.");
+        } else {
+          console.error(error);
+        }
+      }
+    }
+
+    if (accounts.length > 0) {
+      await refreshAccountData();
+    }
+
+    return accounts.length > 0;  // Returns true if connected, false otherwise
+  } else {
+    alert("Ethereum provider is not available.");
+    return false;
   }
-  return accounts.length > 0;  // Returns true if connected, false otherwise
 }
 
 
@@ -456,28 +478,44 @@ async function fetchAccountData() {
 }
 
 async function onConnect() {
-  try {
-    // If window.ethereum is available, use it as the provider
-    if (window.ethereum) {
-      provider = window.ethereum;
-      await window.ethereum.enable(); // Request permission to access accounts
-    } else if (web3Modal) {
-      provider = await web3Modal.connect();
-    } else {
-      throw new Error("No Ethereum provider found");
-    }
 
-    const web3 = new Web3(provider);
+
+  try {
+    provider = await walletModal.connect();
+    web3 = new Web3(provider);
     chainId = await web3.eth.net.getId();
 
+    // Check if connected to Goerli testnet (chainId: 5)
+    if (chainId !== 5) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x5" }],
+        });
+        // After switching, update the chainId
+        chainId = await web3.eth.net.getId();
+      } catch (error) {
+        if (error.code === 4902) {
+          // Chain not added, you can add it here
+          alert("Please connect to the Goerli testnet manually.");
+        } else {
+          console.error(error);
+        }
+      }
+    }
+
     // Subscribe to chainId change
-    provider.on("chainChanged", async () => {
-      await fetchAccountData();
+    provider.on("chainChanged", (chainId) => {
+      (async () => {
+        await fetchAccountData();
+      })();
     });
 
-    // Subscribe to network change (though chainChanged is recommended by MetaMask over networkChanged)
-    provider.on("networkChanged", async () => {
-      await fetchAccountData();
+    // Subscribe to network change
+    provider.on("networkChanged", (chainId) => {
+      (async () => {
+        await fetchAccountData();
+      })();
     });
 
     await refreshAccountData();
@@ -489,6 +527,8 @@ async function onConnect() {
     return e.message; // Return the error message if an exception is caught
   }
 }
+
+
 
 
 
@@ -514,11 +554,55 @@ async function refreshAccountData() {
 }
 
 
+async function onDisconnect() {
+  try {
+    if (provider) {
+      // Unsubscribe from any event if necessary
+      if (provider.removeAllListeners) {
+        provider.removeAllListeners("chainChanged");
+        provider.removeAllListeners("networkChanged");
+      }
+
+      // If using web3Modal, clear the cached provider
+      if (Web3Modal) {
+        walletModal.clearCachedProvider();
+      }
+
+      provider = null;
+      chainId = null;
+
+      // UI changes when disconnected
+      const subnav = document.getElementById("connected");
+      const loginButton = document.getElementById("btn-connect");
+      subnav.style.display = "none";
+      loginButton.style.display = "block";
+
+      const prepareDiv = document.querySelectorAll(".prepare");
+      prepareDiv.forEach((el) => (el.style.display = "block"));
+      const connectedDiv = document.querySelectorAll(".connected");
+      connectedDiv.forEach((el) => (el.style.display = "none"));
+
+      const userAddress = document.getElementById("user");
+      userAddress.innerHTML = "Not Connected";
+
+      console.log("Disconnected from the wallet");
+
+      await goBack();
+
+      return "disconnected"; // Return disconnected if everything goes well
+    }
+  } catch (e) {
+    console.log("Error while disconnecting the wallet", e);
+    return e.message; // Return the error message if an exception is caught
+  }
+}
 
 
 
 document.addEventListener("DOMContentLoaded", async function() {
-
+  await refresh();
+  await init();
+  document.querySelector("#btn-connect").addEventListener("click", onConnect);
   await onConnect();
   initialDisplay = window.getComputedStyle(document.getElementById('app')).display;
 
@@ -774,6 +858,13 @@ document.addEventListener("DOMContentLoaded", async function() {
 
 
   });
+
+  document.getElementById("btn-disconnect").addEventListener("click", async (event) => {
+    event.preventDefault(); // Prevent any default action
+    await onDisconnect();
+    // Update UI or do any other tasks post disconnection here
+  });
+
 });
 
 
@@ -854,7 +945,7 @@ function generateTaskInfo(i, currentBlock) {
   bountyIcon.setAttribute('data-eva', 'credit-card-outline');
 
   bounty.appendChild(bountyIcon);
-  bounty.innerHTML += weiToEth(db[i].bounty) + ' Goerli ETH'
+  bounty.innerHTML += weiToEth(db[i].bounty) + ' ETH'
   otherInfo.appendChild(bounty);
 
   // Number of Responses with Icon
@@ -1308,7 +1399,8 @@ async function goBack() {
 
   // Reappear the app div
   document.getElementById('app').style.display = initialDisplay;
-
+  document.querySelector('#yourResponses').style.display = 'none';
+  document.querySelector('#yourTasks').style.display = 'none';
   // Respond div slides right to disappear
   var respondDiv = document.getElementById('respond');
   respondDiv.style.transform = 'translateX(100%)';
@@ -1390,7 +1482,7 @@ async function recordResponse(taskId, respondentAddress, responseData, proposer,
           // Hide the animation
           //hideAnimation();
           console.error("Error in contract.methods.submitResponse:", error);
-          deleteResponse(taskNum)
+          deleteResponse(taskId)
 
         });
 
@@ -1516,5 +1608,418 @@ async function getTaskNumber(address) {
   } catch (error) {
     console.error("Error in getTaskNumber:", error);
     return null;
+  }
+}
+
+//Your tasks link
+const yourTasksTrigger = document.querySelector('.your-tasks-trigger');
+const yourTasksElement = document.querySelector('#yourTasks');
+
+yourTasksTrigger.addEventListener('click', async function() {
+  document.getElementsByClassName("loader")[1].style.display = "flex";
+  const isConnected = await checkWalletConnection();
+
+  if (isConnected) {
+    // Check if the element is already displayed
+    if (yourTasksElement.style.display === "block") {
+      document.getElementsByClassName("loader")[1].style.display = "none";
+      return;
+    } else {
+      // Array of element IDs to check for visibility
+      const elementIds = ['app', 'respond', 'submit', 'yourResponses'];
+
+      elementIds.forEach(id => {
+        const element = document.getElementById(id);
+
+        // Check if the element is currently visible
+        if (element && element.style.display !== "none") {
+          // Hide the element
+          element.style.display = "none";
+        }
+      });
+      // Show the element
+      yourTasksElement.style.display = "block";
+      setTimeout(() => {
+        yourTasksElement.style.transform = "translateY(0%)";
+      }, 0); // Timeout needed to allow the browser to first apply the display property change
+      //Retrieve all tasks
+      yourTasks = await fetchTasksByAddress(accounts[0]);
+
+      yourNumHIPS = yourTasks.length;
+      if (yourNumHIPS == 0) {
+        alert('You have not initiated any tasks.');
+        await goBack();
+        return;
+      }
+      let yourHIPCount = 0;
+      yourTasksBoard = document.getElementById("yourTasksboard");
+      yourTasksBoard.innerHTML = "";
+      for (var i = yourNumHIPS - 1; i >= 0; i--) {
+        yourHIPCount++;
+        // Create the main li element
+        let li = document.createElement('li');
+        li.id = i;
+        let taskType = yourTasks[i].type.toLowerCase();
+        li.className = taskType + '-card';
+        li.setAttribute('data-tags', yourTasks[i].title);
+
+        // Create the anchor element
+        let anchor = document.createElement('a');
+        anchor.id = i;
+        anchor.className = 'view';
+        // Content div
+        let contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+
+        // Export button
+        let exportButton = document.createElement('button');
+        exportButton.textContent = 'Export responses';
+        exportButton.classList.add('uk-button', 'uk-button-default', 'uk-button-small', 'uk-margin-small-top');
+
+
+        // Icon div inside the content
+        let iconDiv = document.createElement('div');
+        iconDiv.className = 'icon';
+        let icon = document.createElement('i');
+        if (taskType == "choice") {
+          icon.setAttribute('data-eva', 'award-outline');
+          exportButton.style.color = "var(--primary-1)";
+          exportButton.style.borderColor = "var(--primary-1)";
+
+
+
+
+        }
+        else if (taskType == "ranking") {
+          icon.setAttribute('data-eva', 'bar-chart-2-outline');
+          li.style.setProperty("--color", "var(--primary-2)");
+          exportButton.style.color = "var(--primary-2)";
+          exportButton.style.borderColor = "var(--primary-2)";
+        }
+        if (taskType == "sorting") {
+          icon.setAttribute('data-eva', 'keypad-outline');
+          li.style.setProperty("--color", "var(--primary-3)");
+          exportButton.style.color = "var(--primary-3)";
+          exportButton.style.borderColor = "var(--primary-3)";
+        }
+        if (taskType == "labelling") {
+          icon.setAttribute('data-eva', 'pricetags-outline');
+          li.style.setProperty("--color", "var(--primary-4)");
+          exportButton.style.color = "var(--primary-4)";
+          exportButton.style.borderColor = "var(--primary-4)";
+
+        }
+        iconDiv.appendChild(icon);
+
+        // Text div inside the content
+        let textDiv = document.createElement('div');
+        textDiv.className = 'text';
+        // Add title
+        textDiv.appendChild(document.createTextNode(yourTasks[i].title));
+
+        // Create description
+        const span = document.createElement('span');
+        span.className = 'type-' + taskType;
+        span.innerText = taskType.toUpperCase();
+        textDiv.appendChild(span);
+
+        // Create the small element and add it to the div
+        const small = document.createElement('small');
+        small.innerText = yourTasks[i].description
+        textDiv.appendChild(small);
+
+        //Compute remaining time
+        let currentBlock;
+        let timeLeft;
+        // Get the latest block details
+        if (web3.currentProvider) {
+          currentBlock = await web3.eth.getBlock("latest");
+
+          if (typeof currentBlock === "undefined") {
+            timeLeft = "Unknown";
+          } else {
+            currentBlock = currentBlock.timestamp;
+
+            timeLeft =
+
+              convertUnixTime(
+                -parseInt(currentBlock) +
+                parseInt(yourTasks[i].date) +
+                parseInt(yourTasks[i].duration)
+              );
+          }
+        } else {
+          timeLeft = " No wallet";
+        }
+
+
+
+        // Append icon and text div to content
+        contentDiv.appendChild(iconDiv);
+        contentDiv.appendChild(textDiv);
+
+
+
+
+        // Append content
+        anchor.appendChild(contentDiv);
+        //Logic of the export button
+        const taskId = yourTasks[i].id;
+        ((taskId) => {
+          exportButton.addEventListener('click', async () => {
+            const response = await fetch(`/getResponses/${taskId}`);
+            const data = await response.json();
+
+            if (data.length === 0) {
+              alert("This task has not received any response.");
+            } else {
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = `responses_task_${taskId}.json`;
+
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+            }
+          });
+        })(yourTasks[i].id);
+
+
+        //append export button
+
+
+        anchor.appendChild(exportButton);
+
+        // Append anchor to li
+        li.appendChild(anchor);
+
+        yourTasksBoard.appendChild(li);
+        document.getElementsByClassName("loader")[1].style.display = "none";
+        eva.replace();
+      }
+    }
+  }
+});
+
+//Your Responses link 
+// Your responses link
+const yourResponsesTrigger = document.querySelector('.your-responses-trigger');
+const yourResponsesElement = document.querySelector('#yourResponses');
+
+yourResponsesTrigger.addEventListener('click', async function() {
+  document.getElementsByClassName("loader")[2].style.display = "flex";
+  const isConnected = await checkWalletConnection();
+
+  if (isConnected) {
+    // Check if the element is already displayed
+    if (yourResponsesElement.style.display === "block") {
+      document.getElementsByClassName("loader")[2].style.display = "none";
+      return;
+    } else {
+      // Array of element IDs to check for visibility
+      const elementIds = ['app', 'respond', 'submit', 'yourTasks'];
+
+      elementIds.forEach(id => {
+        const element = document.getElementById(id);
+
+        // Check if the element is currently visible
+        if (element && element.style.display !== "none") {
+          // Hide the element
+          element.style.display = "none";
+        }
+      });
+
+      // Show the element
+      yourResponsesElement.style.display = "block";
+      setTimeout(() => {
+        yourResponsesElement.style.transform = "translateY(0%)";
+      }, 0); // Timeout needed to allow the browser to first apply the display property change
+      yourTasks = await fetchTasksRespondedToByAddress(accounts[0]);
+      yourNumHIPS = yourTasks.length;
+      if (yourNumHIPS == 0) {
+        alert('You have not responded to any tasks.');
+        await goBack();
+        return;
+      }
+      yourHIPCount = 0;
+      yourTasksBoard = document.getElementById("yourResponsesboard");
+      yourTasksBoard.innerHTML = "";
+      for (var i = yourNumHIPS - 1; i >= 0; i--) {
+        yourHIPCount++;
+        // Create the main li element
+        let li = document.createElement('li');
+        li.id = i;
+        let taskType = yourTasks[i].type.toLowerCase();
+        li.className = taskType + '-card';
+        li.setAttribute('data-tags', yourTasks[i].title);
+
+        // Create the anchor element
+        let anchor = document.createElement('a');
+        anchor.id = i;
+        anchor.className = 'view';
+        // Content div
+        let contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+
+        // Export button
+        let paymentButton = document.createElement('button');
+        paymentButton.textContent = 'Request Payment';
+        paymentButton.classList.add('uk-button', 'uk-button-default', 'uk-button-small', 'uk-margin-small-top');
+
+        paymentButton.addEventListener('click', async () => {
+          try {
+            const result = await contract.methods.requestPayment().send({ from: accounts[0] });
+            console.log(result);
+            // You can add more actions here, such as refreshing the UI or notifying the user of success
+          } catch (error) {
+            console.error("Error in contract.methods.requestPayment:", error);
+            // Handle the error, perhaps by notifying the user
+          }
+        });
+        // Icon div inside the content
+        let iconDiv = document.createElement('div');
+        iconDiv.className = 'icon';
+        let icon = document.createElement('i');
+        if (taskType == "choice") {
+          icon.setAttribute('data-eva', 'award-outline');
+          exportButton.style.color = "var(--primary-1)";
+          exportButton.style.borderColor = "var(--primary-1)";
+
+
+
+
+        }
+        else if (taskType == "ranking") {
+          icon.setAttribute('data-eva', 'bar-chart-2-outline');
+          li.style.setProperty("--color", "var(--primary-2)");
+          paymentButton.style.color = "var(--primary-2)";
+          paymentButton.style.borderColor = "var(--primary-2)";
+        }
+        if (taskType == "sorting") {
+          icon.setAttribute('data-eva', 'keypad-outline');
+          li.style.setProperty("--color", "var(--primary-3)");
+          paymentButton.style.color = "var(--primary-3)";
+          paymentButton.style.borderColor = "var(--primary-3)";
+        }
+        if (taskType == "labelling") {
+          icon.setAttribute('data-eva', 'pricetags-outline');
+          li.style.setProperty("--color", "var(--primary-4)");
+          paymentButton.style.color = "var(--primary-4)";
+          paymentButton.style.borderColor = "var(--primary-4)";
+
+        }
+        iconDiv.appendChild(icon);
+
+        // Text div inside the content
+        let textDiv = document.createElement('div');
+        textDiv.className = 'text';
+        // Add title
+        textDiv.appendChild(document.createTextNode(yourTasks[i].title));
+
+        // Create description
+        const span = document.createElement('span');
+        span.className = 'type-' + taskType;
+        span.innerText = taskType.toUpperCase();
+        textDiv.appendChild(span);
+
+        // Create the small element and add it to the div
+        const small = document.createElement('small');
+        small.innerText = yourTasks[i].description
+        textDiv.appendChild(small);
+
+        //Compute remaining time
+        let currentBlock;
+        let timeLeft;
+        // Get the latest block details
+        if (web3.currentProvider) {
+          currentBlock = await web3.eth.getBlock("latest");
+
+          if (typeof currentBlock === "undefined") {
+            timeLeft = "Unknown";
+          } else {
+            currentBlock = currentBlock.timestamp;
+
+            timeLeft =
+
+              convertUnixTime(
+                -parseInt(currentBlock) +
+                parseInt(yourTasks[i].date) +
+                parseInt(yourTasks[i].duration)
+              );
+          }
+        } else {
+          timeLeft = " No wallet";
+        }
+
+
+
+        // Append icon and text div to content
+        contentDiv.appendChild(iconDiv);
+        contentDiv.appendChild(textDiv);
+
+
+
+
+        // Append content
+        anchor.appendChild(contentDiv);
+        //Logic of the export button
+        const taskId = yourTasks[i].id;
+        ((taskId) => {
+          paymentButton.addEventListener('click', async () => {
+            alert('This is where we make a call to the contract')
+          });
+        })(yourTasks[i].id);
+
+
+        //append export button
+
+
+        anchor.appendChild(paymentButton);
+
+        // Append anchor to li
+        li.appendChild(anchor);
+
+        yourTasksBoard.appendChild(li);
+        document.getElementsByClassName("loader")[2].style.display = "none";
+        eva.replace();
+      }
+
+    }
+  }
+});
+
+//Fetch tasks created by address
+async function fetchTasksByAddress(address) {
+  try {
+
+    const response = await fetch(`/HIP/getTasksByAddress/${address}`);
+    if (response.status !== 200) {
+
+      throw new Error("Failed to fetch tasks");
+    }
+    const tasks = await response.json();
+
+    return tasks;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+//Fetch tasks responded to by address
+async function fetchTasksRespondedToByAddress(address) {
+  try {
+    const response = await fetch(`/getTasksByResponder/${address}`);
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch tasks");
+    }
+    const tasks = await response.json();
+    return tasks;
+  } catch (error) {
+    console.error(error);
+    return [];
   }
 }
