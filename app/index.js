@@ -405,21 +405,6 @@ router.post("/upload-single-file", upload.single("file"), (ctx) => {
 });
 
 
-
-(async () => {
-  try {
-    await client.connect();
-    console.log("Connected to MongoDB Atlas.");
-    database = client.db("cognize");
-
-    app.listen(PORT, () => {
-      console.log(`Server starting at port ${PORT}`);
-    });
-  } catch (err) {
-    console.error("Failed to connect to the database:", err);
-  }
-})();
-
 //Decrement number of responses for task
 router.put("/HIP/decrementNumReviews", async (ctx) => {
   const data = ctx.request.body;
@@ -494,4 +479,101 @@ router.put("/HIP/decrementReviewerCount", async (ctx) => {
     ctx.status = 500;
     ctx.body = "Error decrementing response count";
   }
+});
+
+// Get all tasks created by a specific Ethereum address
+router.get("/HIP/getTasksByAddress/:address", async (ctx) => {
+  const address = ctx.params.address;
+
+  try {
+    const collection = database.collection("tasks");
+    const filter = { proposer: address }; // Assuming each task document has an "address" field denoting the Ethereum address of the creator
+
+    const results = await collection.find(filter).toArray();
+
+    if (results.length > 0) {
+      ctx.body = results;
+      console.log(`Fetched ${results.length} tasks for address: ${address}`);
+    } else {
+      ctx.body = [];
+      console.log(`No tasks found for the address: ${address}`);
+    }
+  } catch (error) {
+    console.error("Error fetching tasks by address:", error);
+    ctx.status = 500;
+    ctx.body = "Error fetching tasks by address";
+  }
+});
+
+
+
+
+(async () => {
+  try {
+    await client.connect();
+    console.log("Connected to MongoDB Atlas.");
+    database = client.db("cognize");
+
+    app.listen(PORT, () => {
+      console.log(`Server starting at port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Failed to connect to the database:", err);
+  }
+})();
+//Getting responses to a task
+router.get("/getResponses/:taskId", async (ctx) => {
+  const taskId = ctx.params.taskId;
+
+  try {
+    const collection = database.collection("responses");
+    const filter = { taskId: parseInt(taskId) };
+
+    const responses = await collection.find(filter).toArray();
+
+    if (responses.length > 0) {
+      ctx.body = responses;
+    } else {
+      ctx.status = 404;
+      ctx.body = "No responses found for this task";
+    }
+  } catch (error) {
+    console.error("Error fetching responses:", error);
+    ctx.status = 500;
+    ctx.body = "Error fetching responses";
+  }
+});
+
+//Getting tasks by responder
+router.get("/getTasksByResponder/:address", async (ctx) => {
+    const address = ctx.params.address;
+
+    try {
+        // Find all taskIds from responses for the given address
+        const responseCollection = database.collection("responses");
+        const tasksIds = await responseCollection.find({ respondent: address }).map(resp => resp.taskId).toArray();
+
+        if (!tasksIds || tasksIds.length === 0) {
+            ctx.status = 404;
+            ctx.body = "No tasks found for this respondent";
+            return;
+        }
+
+        // Fetch all tasks corresponding to the retrieved taskIds
+        const taskCollection = database.collection("tasks");
+        const filter = { id: { $in: tasksIds } }; // Filtering tasks by their ids
+        const tasks = await taskCollection.find(filter).toArray();
+
+        if (tasks.length > 0) {
+            ctx.body = tasks;
+        } else {
+            ctx.status = 404;
+            ctx.body = "No tasks found for this respondent";
+        }
+
+    } catch (error) {
+        console.error("Error fetching tasks by responder:", error);
+        ctx.status = 500;
+        ctx.body = "Error fetching tasks";
+    }
 });
