@@ -61,6 +61,26 @@ body {
 
 }
 
+#yourTasks {
+  transform: translateY(-100%);
+  /* Start above the viewport */
+  transition: transform 0.2s ease-in-out;
+  display: none;
+  /* Initially hidden */
+  z-index: 999;
+
+}
+
+#yourResponses {
+  transform: translateY(-100%);
+  /* Start above the viewport */
+  transition: transform 0.2s ease-in-out;
+  display: none;
+  /* Initially hidden */
+  z-index: 999;
+
+}
+
 
 #newTask {
   background: var(--Choice);
@@ -268,6 +288,9 @@ body {
 
 }
 
+.home{
+  cursor: pointer;
+}
 .ranking-card {
   display: flex;
   align-items: start;
